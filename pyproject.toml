@@ -1,0 +1,17 @@
+[project]
+name = "raman-spectroscopy-concentration-prediction"
+version = "0.1.0"
+description = "Raman spectroscopy-based concentration prediction"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "bs4>=0.0.2",
+    "matplotlib>=3.10.0",
+    "pandas>=2.2.3",
+    "plotly>=5.24.1",
+    "requests>=2.32.3",
+    "rich>=13.9.4",
+    "scikit-learn>=1.6.0",
+    "selenium>=4.27.1",
+    "tensorflow>=2.14.0",
+]
