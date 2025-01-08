@@ -28,11 +28,9 @@ parser.add_argument(
     help="Number of simulated measurements",
 )
 parser.add_argument(
-    "-o", "--output", default="spectra.asc", help="Spectra output file name"
+    "-o", "--output", default="spectra.csv", help="Spectra output file name"
 )
-parser.add_argument(
-    "-d", "--database", default="AtomTrace.sqlite", help="Input database"
-)
+parser.add_argument("-d", "--database", default="nist.sqlite", help="Input database")
 args = parser.parse_args()
 np.random.seed(int(time.time()))
 
@@ -44,7 +42,7 @@ class Component:
     Attributes:
         atomic_number: Atomic number of the element.
         concentration: Concentration of the element.
-        peaks: Wavelengths of the peaks from NIST database.
+        peaks: Wavelengths of the peaks from peaks database.
         scale_x: Variation of the peaks locations.
         loc_y: Peaks intensities.
         scale_y: Variation of the peaks intensity.
@@ -96,6 +94,7 @@ def fetch_peaks(elems: Tuple[Elem, ...], db_path: str) -> List[Component]:
                         atomic_number=elem.atomic_number,
                         peaks=peaks,
                         loc_y=300,
+                        scale_y=0.1,
                         concentration=elem.concentration,
                     )
                 )
@@ -184,89 +183,12 @@ def generate_single_spectrum(
     return generate_spectrum(components)[1]
 
 
-def save_to_file(xs: np.ndarray, yss: List[np.ndarray], output: str = "./spectra.asc"):
-    try:
-        with open(output, "w") as file:
-            fmt = {
-                "fmt": "%.8f",
-                "delimiter": "\t",
-                "newline": "\n",
-            }
-            np.savetxt(file, [xs], **fmt)
-            for ys in track(yss, description="Writing to a file"):
-                np.savetxt(file, [ys], **fmt)
-    except IOError as e:
-        print(f"File I/O error: {e}")
-
-
 def generate_random_concentrations(n: int, total: int = 100) -> np.ndarray:
     """Generate 'n' random concentrations that sum to 'total'."""
     proportions = np.random.dirichlet(np.ones(n))
     concentrations = (proportions * total).round()
     concentrations[-1] += total - concentrations.sum()
     return concentrations
-
-
-def concatenate_spectra() -> None:
-    peaks = fetch_peaks((Elem(1, 20.0), Elem(6, 15.0), Elem(26, 65.0)), args.database)
-    if not peaks:
-        raise BaseException("No peaks found. Exiting.")
-
-    _, base_1 = generate_spectrum([], 500, 237.235, 357.593)
-    _, base_2 = generate_spectrum([], 600, 344.496, 601.195)
-    _, base_3 = generate_spectrum([], 450, 582.682, 942.614)
-    dark_spectra = [base_1, base_2, base_3]
-
-    xs_1, ys_1 = generate_spectrum(peaks, 500, 237.235, 357.593)
-    xs_2, ys_2 = generate_spectrum(peaks, 600, 344.496, 601.195)
-    xs_3, ys_3 = generate_spectrum(peaks, 450, 582.682, 942.614)
-
-    # Find out where two
-    lambdas: List[np.ndarray] = [xs_1, xs_2, xs_3]
-    spectra: List[np.ndarray] = [ys_1, ys_2, ys_3]
-
-    # Substract dark_spectra
-    for i in range(len(spectra)):
-        spectra[i] -= dark_spectra[i]
-
-    # 1: 240 - 350 nm
-    # 2: 350 - 590 nm
-    # 3: 590 - 930 nm
-    cutoffs = [240, 350, 590, 930]
-
-    """
-    for i in range(len(lambdas)):
-        plt.plot(lambdas[i], spectra[i])
-    plt.show()
-    """
-
-    # Apply the cutoffs to spectra
-    for i in range(len(spectra)):
-        low_cutoff: float = cutoffs[i]
-        for idx in range(len(lambdas[i])):
-            if lambdas[i][idx] > low_cutoff:
-                print(f"{i=} {idx=} {lambdas[i][idx]=} {cutoffs[i]=}")
-                lambdas[i] = lambdas[i][idx:]
-                spectra[i] = spectra[i][idx:]
-                break
-        high_cutoff: float = cutoffs[i + 1]
-        for idx in range(len(lambdas[i]) - 1, 0, -1):
-            if lambdas[i][idx] < high_cutoff:
-                print(f"{i=} {idx=} {lambdas[i][idx]=} {cutoffs[i+1]=}")
-                lambdas[i] = lambdas[i][:idx]
-                spectra[i] = spectra[i][:idx]
-                break
-
-    joined_lambdas = np.concatenate((lambdas[0], lambdas[1], lambdas[2]))
-    joined_spectra = np.concatenate((spectra[0], spectra[1], spectra[2]))
-
-    for i in range(len(lambdas)):
-        plt.plot(lambdas[i], spectra[i])
-    plt.show()
-
-    plt.plot(joined_lambdas, joined_spectra)
-    plt.show()
-    save_to_file(joined_lambdas, [joined_spectra], args.output)
 
 
 def generate_and_save_spectra(output_file: str, num_spectra: int = 100):
@@ -301,4 +223,4 @@ def generate_and_save_spectra(output_file: str, num_spectra: int = 100):
 
 
 if __name__ == "__main__":
-    generate_and_save_spectra("spectra_data.csv", num_spectra=1000)
+    generate_and_save_spectra("spectra.csv", num_spectra=1000)

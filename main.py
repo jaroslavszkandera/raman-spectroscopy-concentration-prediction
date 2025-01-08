@@ -126,8 +126,8 @@ def predict_spectrum_concentration(spectrum: np.ndarray, model, scaler_X, scaler
 
 
 def main() -> None:
-    file_name = "data_spectra.csv"
-    model_file = "trained_model.keras"
+    file_name = "spectra.csv"
+    model_file = "concentration_prediction_model.keras"
 
     if not os.path.exists(file_name):
         print(f"File '{file_name}' not found. Generating spectra...")
@@ -141,7 +141,6 @@ def main() -> None:
     model = load_model(model_file)
     scaler_X = joblib.load("scaler_X.pkl")
     scaler_y = joblib.load("scaler_y.pkl")
-    print("Model and scalers loaded.")
 
     # Na (11), Al (13), Si (14), K (19)
     atom_numbers = (11, 13, 14, 19)
