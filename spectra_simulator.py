@@ -1,7 +1,6 @@
 import sqlite3
 from typing import Tuple, List
 import numpy as np
-from matplotlib import pyplot as plt
 from argparse import ArgumentParser
 import time
 import pandas as pd
